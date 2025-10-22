@@ -1,0 +1,125 @@
+import fs from "fs/promises";
+import path from "path";
+import sharp from "sharp";
+import chokidar from 'chokidar';
+
+const srcDir = "src";
+const distDir = "dist";
+
+// 出力ディレクトリの作成（存在しない場合）
+async function setupDirectories() {
+  try {
+    await fs.mkdir(distDir, { recursive: true });
+  } catch (error) {
+    console.error("ディレクトリの作成に失敗しました:", error);
+    process.exit(1);
+  }
+}
+
+// 画像ファイルの処理関数
+async function processImage(filePath) {
+  try {
+    // ファイル名と拡張子を取得
+    const fileName = path.basename(filePath);
+    const ext = path.extname(fileName).toLowerCase();
+    
+    if (![".jpg", ".jpeg", ".png"].includes(ext)) return;
+
+    // 入出力パスを設定
+    const inputPath = filePath;
+    const baseName = path.basename(fileName, ext);
+    const webpPath = path.join(distDir, `${baseName}.webp`);
+    const avifPath = path.join(distDir, `${baseName}.avif`);
+    // const webpLossy = path.join(distDir, `${baseName}-hikagyaku.webp`);
+    // const webpLossless = path.join(distDir, `${baseName}-kagyaku.webp`);
+    // const avifLossy = path.join(distDir, `${baseName}-hikagyaku.avif`);
+    // const avifLossless = path.join(distDir, `${baseName}-kagyaku.avif`);
+
+
+    // 同時変換を実行　非可逆圧縮（Lossy） モード
+    await Promise.all([
+      sharp(inputPath)
+        .webp({ quality: 85 })
+        .toFile(webpPath),
+      sharp(inputPath)
+        .avif({ quality: 70 })
+        .toFile(avifPath)
+    ]);
+      // 両方を並行変換
+      // await Promise.all([
+      //   // WebP 非可逆圧縮
+      //   sharp(filePath)
+      //     .webp({ quality: 85 })
+      //     .toFile(webpLossy),
+  
+      //   // WebP 可逆圧縮
+      //   sharp(filePath)
+      //     .webp({ lossless: true })
+      //     .toFile(webpLossless),
+  
+      //   // AVIF 非可逆圧縮
+      //   sharp(filePath)
+      //     .withMetadata({ icc: 'sRGB.icc' })
+      //     .avif({ quality: 60, depth: 8})
+      //     .toFile(avifLossy),
+  
+      //   // AVIF 可逆圧縮
+      //   sharp(filePath)
+      //     .avif({ lossless: true })
+      //     .toFile(avifLossless)
+      // ]);
+
+    console.log(`変換完了: ${fileName}`);
+    console.log(`→ WebP: ${path.basename(webpPath)}`);
+    console.log(`→ AVIF: ${path.basename(avifPath)}`);
+
+  } catch (error) {
+    console.error(`画像処理エラー: ${filePath}`, error);
+  }
+}
+
+// 初期処理（既存ファイルの変換）
+async function processInitialFiles() {
+  try {
+    const files = await fs.readdir(srcDir);
+    await Promise.all(files.map(file => processImage(path.join(srcDir, file))));
+  } catch (error) {
+    console.error("初期処理エラー:", error);
+  }
+}
+
+// 監視設定
+function setupWatcher() {
+  const watcher = chokidar.watch(srcDir, {
+    ignored: /(^|[\/\\])\../,
+    ignoreInitial: false,
+    persistent: true,
+    awaitWriteFinish: {
+      stabilityThreshold: 1000,
+      pollInterval: 100
+    }
+  });
+
+  watcher.on('add', async (filePath) => {
+    console.log(`新しいファイル検出: ${path.basename(filePath)}`);
+    await processImage(filePath);
+  });
+
+  watcher.on('error', error => {
+    console.error("監視エラー:", error);
+  });
+
+  console.log("ファイル監視を開始しました");
+}
+
+// メイン処理の実行
+async function main() {
+  await setupDirectories();
+  await processInitialFiles();
+  setupWatcher();
+}
+
+main().catch(error => {
+  console.error("メイン処理エラー:", error);
+  process.exit(1);
+});
