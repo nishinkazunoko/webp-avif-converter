@@ -29,7 +29,11 @@ async function processImage(filePath) {
     const inputPath = filePath;
     const baseName = path.basename(fileName, ext);
     const webpPath = path.join(distDir, `${baseName}.webp`);
-    const avifPath = path.join(distDir, `${baseName}.avif`);
+    // AVIF変換したい時は有効化▽
+    // const avifPath = path.join(distDir, `${baseName}.avif`);
+
+
+    // 非可逆圧縮・可逆の両方を並行変換▽素ピーチ検証用なので実際はいらないコード
     // const webpLossy = path.join(distDir, `${baseName}-hikagyaku.webp`);
     // const webpLossless = path.join(distDir, `${baseName}-kagyaku.webp`);
     // const avifLossy = path.join(distDir, `${baseName}-hikagyaku.avif`);
@@ -41,11 +45,12 @@ async function processImage(filePath) {
       sharp(inputPath)
         .webp({ quality: 85 })
         .toFile(webpPath),
-      sharp(inputPath)
-        .avif({ quality: 70 })
-        .toFile(avifPath)
+      // AVIF変換したい時は有効化▽
+      // sharp(inputPath)
+      //   .avif({ quality: 70 })
+      //   .toFile(avifPath)
     ]);
-      // 両方を並行変換
+    // 非可逆圧縮・可逆の両方を並行変換▽素ピーチ検証用なので実際はいらないコード
       // await Promise.all([
       //   // WebP 非可逆圧縮
       //   sharp(filePath)
@@ -71,7 +76,7 @@ async function processImage(filePath) {
 
     console.log(`変換完了: ${fileName}`);
     console.log(`→ WebP: ${path.basename(webpPath)}`);
-    console.log(`→ AVIF: ${path.basename(avifPath)}`);
+    // console.log(`→ AVIF: ${path.basename(avifPath)}`);
 
   } catch (error) {
     console.error(`画像処理エラー: ${filePath}`, error);
