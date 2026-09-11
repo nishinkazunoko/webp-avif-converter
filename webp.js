@@ -47,7 +47,7 @@ async function processImage(filePath) {
         .toFile(webpPath),
       // AVIF変換したい時は有効化▽
       // sharp(inputPath)
-      //   .avif({ quality: 70 })
+      //   .avif({ quality: 65 })
       //   .toFile(avifPath)
     ]);
     // 非可逆圧縮・可逆の両方を並行変換▽素ピーチ検証用なので実際はいらないコード
